@@ -123,31 +123,6 @@ demographics_filt <- demographics_filt[demographics_filt$patient_id %in% pts_val
 #   - Such a workaround is the only feasible way of dealing with missing retrospective data though
 #     it is likely that we may miss quite a number of true AKIs using this method
 
-
-# Scenario (1): AKI occurs during admission
-# Find minimum Cr level in a rolling 90 day timeframe
-message("Generating minimum Cr level in the past 90 days")
-labs_cr_aki <- data.table::data.table(labs_cr_aki,key=c("patient_id","days_since_admission"))
-labs_cr_aki <- labs_cr_aki[data.table::CJ(unique(patient_id),seq(min(days_since_admission)-90,max(days_since_admission)))] # temporarily fill in null rows for missing days - the minimum rolling code only works for consecutive data
-labs_cr_aki <- labs_cr_aki %>% dplyr::group_by(patient_id) %>% dplyr::mutate(min_cr_90d = RcppRoll::roll_min(value,91,fill=NA,na.rm=TRUE,align="right")) %>% dplyr::filter(!is.na(value))
-# Find minimum Cr level in a rolling 2 day timeframe (48h)
-message("Generating minimum Cr level in the past 48h")
-labs_cr_aki <- data.table::data.table(labs_cr_aki,key=c("patient_id","days_since_admission"))
-labs_cr_aki <- labs_cr_aki[data.table::CJ(unique(patient_id),seq(min(days_since_admission)-2,max(days_since_admission)))] # temporarily fill in null rows for missing days - the minimum rolling code only works for consecutive data
-labs_cr_aki <- labs_cr_aki %>% dplyr::group_by(patient_id) %>% dplyr::mutate(min_cr_48h = RcppRoll::roll_min(value,3,fill=NA,na.rm=TRUE,align="right")) %>% dplyr::filter(!is.na(value))
-
-# Scenario (2): Patient presents with an AKI already on board
-# Find minimum Cr level in a rolling 7 day timeframe
-message("Generating minimum Cr level 7 days in the future")
-labs_cr_aki <- data.table::data.table(labs_cr_aki,key=c("patient_id","days_since_admission"))
-labs_cr_aki <- labs_cr_aki[data.table::CJ(unique(patient_id),seq(min(days_since_admission),max(days_since_admission)+7))] # temporarily fill in null rows for missing days - the minimum rolling code only works for consecutive data
-labs_cr_aki <- labs_cr_aki %>% dplyr::group_by(patient_id) %>% dplyr::mutate(min_cr_retro_7day = RcppRoll::roll_min(value,8,fill=NA,na.rm=TRUE,align="left")) %>% dplyr::filter(!is.na(value))
-# Find minimum Cr level in a rolling 2 day timeframe (48h)
-message("Generating minimum Cr level 48h in the future")
-labs_cr_aki <- data.table::data.table(labs_cr_aki,key=c("patient_id","days_since_admission"))
-labs_cr_aki <- labs_cr_aki[data.table::CJ(unique(patient_id),seq(min(days_since_admission),max(days_since_admission)+2))] # temporarily fill in null rows for missing days - the minimum rolling code only works for consecutive data
-labs_cr_aki <- labs_cr_aki %>% dplyr::group_by(patient_id) %>% dplyr::mutate(min_cr_48h_retro = RcppRoll::roll_min(value,3,fill=NA,na.rm=TRUE,align="left")) %>% dplyr::filter(!is.na(value))
-
 # Another outcome we are interested in is to look at acute kidney disease, AKD (in between AKI and CKD)
 # We will use the definitions proposed for AKD as described by Chawla et. al. 2017 (ref (1))
 # We are interested in renal recovery at the 7-day and 90-day timepoint
